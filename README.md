@@ -6,16 +6,6 @@
 - использует `fan-out/fan-in`;
 - выводит форматированный результат в `stdout`.
 
-## Требования
-
-- Go 1.22+ (или совместимая версия)
-
-Проверить установку:
-
-```bash
-go version
-```
-
 ## Запуск
 
 Из корня проекта:
@@ -30,12 +20,6 @@ go run ./cmd/pipeline -limit 5 -user 1 -workers 4
 - `-limit` — максимум постов в обработке (`0` = без лимита)
 - `-workers` — количество конкурентных воркеров для fan-out
 - `-timeout` — timeout HTTP-запроса (например, `5s`, `10s`)
-
-Пример:
-
-```bash
-go run ./cmd/pipeline -user 2 -limit 7 -workers 3 -timeout 8s
-```
 
 ## Архитектура и границы ответственности
 
@@ -53,14 +37,6 @@ go run ./cmd/pipeline -user 2 -limit 7 -workers 3 -timeout 8s
 4. **Fan-in**: слияние результатов всех воркеров в один канал
 5. **Format + stdout**: сортировка и печать строк
 
-## Формат вывода
-
-Каждая строка:
-
-```text
-post_id=<id> user_id=<userId> words=<body_words_count> title="<title>"
-```
-
 ## Обработка ошибок
 
 Программа завершится с кодом `1` и сообщением в `stderr`, если:
@@ -71,7 +47,7 @@ post_id=<id> user_id=<userId> words=<body_words_count> title="<title>"
 
 ---
 
-## Минимальный чат-сервер (TCP)
+## Чат-сервер (TCP)
 
 В проекте также есть простой конкурентный чат-сервер:
 
@@ -92,45 +68,14 @@ go run ./cmd/chatserver -addr :9000
 ```bash
 telnet 127.0.0.1 9000
 ```
-
-или (если установлен `nc`):
-
-```bash
-nc 127.0.0.1 9000
-```
-
-### Использование
-
-1. Введите имя при подключении.
-2. Пишите сообщения и нажимайте Enter.
-3. Для выхода введите `/quit`.
-
 ### Команды чата
 
 - `/join <room>` — перейти в комнату
 - `/msg <user> <text>` — отправить личное сообщение пользователю
 - `/who` — список пользователей онлайн
 - `/quit` — выйти из чата
-
-Примеры:
-
-```text
-/join backend
-/msg alice привет, глянь pipeline
-/who
-```
-
----
-
+- 
 ## WebSocket чат (HTTP + gorilla/websocket)
-
-Требования задания:
-- простой HTTP-сервер с endpoint’ом;
-- WebSocket через `github.com/gorilla/websocket`;
-- комнаты (room);
-- чтение/запись сообщений в комнату;
-- простой клиент;
-- идентификация пользователя через “auth-токен” (не безопасность, а идентификатор).
 
 Файлы:
 - сервер: `cmd/wsserver/main.go`
@@ -148,7 +93,7 @@ HTTP endpoint:
 WebSocket endpoint:
 - `GET /ws`
 
-### Протокол (очень простой JSON)
+### Протокол 
 
 1) Клиент подключается к `ws://localhost:8081/ws` и отправляет `join`:
 
@@ -188,11 +133,7 @@ go run ./cmd/wsclient -url ws://localhost:8081/ws -room lobby -name alice
 go run ./cmd/wsclient -url ws://localhost:8081/ws -room lobby -token <token>
 ```
 
----
-
-## REST API + Auth + Postgres (миграции) + DI
-
-Это следующая часть проекта: REST, JWT (access/refresh), Postgres и миграции. DI реализован без контейнера — зависимости собираются в `cmd/api/main.go` через конструкторы.
+## REST API + Auth + Postgres + DI
 
 Файлы:
 - REST сервер: `cmd/api/main.go`
@@ -202,51 +143,6 @@ go run ./cmd/wsclient -url ws://localhost:8081/ws -room lobby -token <token>
 - Конфиг из env: `internal/config/config.go`
 - Миграции: `migrations/*.sql`
 - Инфраструктура: `.env.example`, `Dockerfile.api`, `docker-compose.yml`
-
-### Запуск (локально, без Docker)
-
-1) Подними Postgres (любой способ) и создай БД `app` с юзером `app/app`.
-
-2) Примени миграции:
-
-- **То, что я НЕ могу сделать за тебя автоматически**: применить миграции на твоей машине без инструментов.
-- **Как сделать самому (варианты)**:
-  - поставить `migrate` (golang-migrate) и выполнить:
-
-```bash
-migrate -path ./migrations -database "postgres://app:app@localhost:5432/app?sslmode=disable" up
-```
-
-  - или открыть `migrations/0001_init.up.sql` и выполнить SQL в твоём клиенте Postgres.
-
-3) Запусти API (env можно взять из `.env.example`):
-
-```bash
-set HTTP_ADDR=:8082
-set DATABASE_URL=postgres://app:app@localhost:5432/app?sslmode=disable
-set JWT_ACCESS_SECRET=change-me-access
-set JWT_REFRESH_SECRET=change-me-refresh
-go run ./cmd/api
-```
-
-Health:
-- `GET http://localhost:8082/health`
-
-### Запуск (Docker)
-
-1) Сборка и старт контейнеров:
-
-```bash
-docker compose up --build
-```
-
-2) Применить миграции (вариант через `migrate` на хосте):
-
-```bash
-migrate -path ./migrations -database "postgres://app:app@localhost:5432/app?sslmode=disable" up
-```
-
-### REST endpoints (минимум)
 
 Auth:
 - `POST /auth/register` `{ "username": "...", "password": "..." }`
