@@ -1,0 +1,7 @@
+.git
+web/node_modules
+web/dist
+**/.cache
+*.log
+.cursor
+**/agent-transcripts
